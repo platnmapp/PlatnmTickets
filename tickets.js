@@ -231,12 +231,8 @@ async function loadCategories() {
     console.log('Loading categories for user:', currentUser.uid);
     categories = [];
     
-    // Try different collection paths in order of preference
+    // Only load from user-specific collections (no global categories)
     const collectionPaths = [
-      // Global collections (most likely based on your Firebase structure)
-      { ref: db.collection('categories'), name: 'categories (global)' },
-      { ref: db.collection('ticketCategories'), name: 'ticketCategories (global)' },
-      // User-specific collections
       { ref: db.collection('users').doc(currentUser.uid).collection('ticketCategories'), name: 'users/{userId}/ticketCategories' },
       { ref: db.collection('users').doc(currentUser.uid).collection('categories'), name: 'users/{userId}/categories' }
     ];
@@ -261,7 +257,7 @@ async function loadCategories() {
     }
     
     if (!snapshot || snapshot.empty) {
-      console.log('No categories found in any collection');
+      console.log('No categories found - starting with empty list');
       categories = [];
     } else {
       console.log(`Found ${snapshot.size} categories in ${foundPath}`);
@@ -289,7 +285,7 @@ async function loadCategories() {
     if (error.code === 'permission-denied') {
       console.error('PERMISSION ERROR: Your Firestore security rules need to allow read access to the categories collection.');
       console.error('Example rule needed:');
-      console.error('match /categories/{document=**} { allow read: if request.auth != null; }');
+      console.error('match /users/{userId}/ticketCategories/{document=**} { allow read: if request.auth != null && request.auth.uid == userId; }');
     }
   }
 }
@@ -428,11 +424,10 @@ async function updateCategoryOrder() {
     }
   });
   
-  // Update in Firebase - try different collection paths
+  // Update in Firebase - only user-specific collections
   const collectionPaths = [
-    db.collection('categories'),
-    db.collection('ticketCategories'),
-    db.collection('users').doc(currentUser.uid).collection('ticketCategories')
+    db.collection('users').doc(currentUser.uid).collection('ticketCategories'),
+    db.collection('users').doc(currentUser.uid).collection('categories')
   ];
   
   // Try to update in each collection (some may not exist, that's okay)
